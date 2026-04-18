@@ -153,7 +153,7 @@
     <div class="d-flex gap-2">
       {% for score, label in result_labels.items() %}
       <input type="radio" class="btn-check" name="result_score" id="r_{{ score }}"
-             value="{{ score }}" {% if score == 4 %}checked{% endif %} required>
+             value="{{ score }}" required>
       <label class="btn result-btn result-{{ score }} flex-fill" for="r_{{ score }}">
         <div class="result-score-num">{{ score }}</div>
         <div class="result-score-label">{{ label }}</div>
@@ -168,7 +168,7 @@
            placeholder="Notes (optional)">
   </div>
 
-  <button type="submit" class="btn btn-success btn-lg w-100 save-btn">Save Shot &rarr;</button>
+  <button type="submit" class="btn btn-success btn-lg w-100 save-btn" onclick="this.disabled=true;this.form.submit()">Save Shot &rarr;</button>
 </form>
 
 <!-- Shots This End -->
@@ -212,7 +212,6 @@ function toggleActualWeight() {
     btn.textContent = 'Different from call';
     btn.classList.remove('btn-warning');
     btn.classList.add('btn-outline-secondary');
-    document.querySelectorAll('input[name="actual_weight"]').forEach(r => r.checked = false);
   } else {
     grid.style.display = 'block';
     btn.textContent = '✓ Recording actual weight';

@@ -45,7 +45,7 @@
 <div class="card bg-secondary mt-4">
   <div class="card-body">
     <h6 class="text-uppercase opacity-50 small mb-3">Export All Shots by Date Range</h6>
-    <form action="/export" method="get">
+    <form action="/export" method="get" onsubmit="return validateExportDates()">
       <div class="d-flex gap-2 flex-wrap align-items-end">
         <div class="flex-fill" style="min-width:130px">
           <label class="form-label small opacity-75 mb-1">From</label>
@@ -70,4 +70,18 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function validateExportDates() {
+  const from = document.querySelector('[name="date_from"]').value;
+  const to = document.querySelector('[name="date_to"]').value;
+  if (from && to && from > to) {
+    alert('"From" date must be on or before "To" date.');
+    return false;
+  }
+  return true;
+}
+</script>
 {% endblock %}

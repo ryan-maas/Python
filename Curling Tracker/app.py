@@ -59,6 +59,8 @@ def track(game_id):
     ends = db.get_ends(game_id)
 
     throw_idx = throw_num - 1
+    if throw_idx >= len(throw_order):
+        return redirect(url_for("end_score", game_id=game_id, end_num=end_num))
     pos, stone, team = throw_order[throw_idx]
     hammer = db.get_hammer_for_end(game_id, end_num)
 
@@ -187,7 +189,7 @@ def _shots_csv(shots, filename):
         sd = dict(s)
         # all_shots rows use 'name'/'position' from the JOIN; bulk export uses 'player_name'
         row = [
-            sd.get("game_date", sd.get("game_date", "")),
+            sd.get("game_date", ""),
             sd.get("home_team", ""),
             sd.get("away_team", ""),
             sd.get("venue", ""),
@@ -230,7 +232,10 @@ def shots_csv(game_id):
         sd["away_team"] = game["away_team"]
         sd["venue"] = game["venue"] or ""
         enriched.append(sd)
-    filename = f"shots_{game['date']}_{game['home_team']}_vs_{game['away_team']}.csv".replace(" ", "_")
+    filename = (
+        f"shots_{game['date']}_{game['home_team']}_vs_{game['away_team']}.csv"
+        .replace(" ", "_").replace("/", "-").replace("\\", "-")
+    )
     return _shots_csv(enriched, filename)
 
 

@@ -37,6 +37,7 @@ TURNS = [
 
 LINES = ["Inside", "On Line", "Outside", "Unknown"]
 RESULT_LABELS = {0: "Miss", 1: "Poor", 2: "Fair", 3: "Good", 4: "Perfect"}
+MAX_SHOT_SCORE = 4  # Max points per shot (4 = Perfect)
 
 
 def get_db():
@@ -48,88 +49,92 @@ def get_db():
 
 def init_db():
     conn = get_db()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS games (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            home_team TEXT NOT NULL,
-            away_team TEXT NOT NULL,
-            venue TEXT,
-            hammer_first_end TEXT NOT NULL DEFAULT 'home',
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
+    try:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                home_team TEXT NOT NULL,
+                away_team TEXT NOT NULL,
+                venue TEXT,
+                hammer_first_end TEXT NOT NULL DEFAULT 'home',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS players (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            game_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            team TEXT NOT NULL,
-            position TEXT NOT NULL,
-            FOREIGN KEY (game_id) REFERENCES games(id)
-        );
+            CREATE TABLE IF NOT EXISTS players (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                team TEXT NOT NULL,
+                position TEXT NOT NULL,
+                FOREIGN KEY (game_id) REFERENCES games(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS shots (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            game_id INTEGER NOT NULL,
-            end_number INTEGER NOT NULL,
-            throw_number INTEGER NOT NULL,
-            player_id INTEGER NOT NULL,
-            team TEXT NOT NULL,
-            weight_call TEXT NOT NULL,
-            turn TEXT NOT NULL,
-            result_score INTEGER NOT NULL,
-            notes TEXT,
-            FOREIGN KEY (game_id) REFERENCES games(id),
-            FOREIGN KEY (player_id) REFERENCES players(id)
-        );
+            CREATE TABLE IF NOT EXISTS shots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                end_number INTEGER NOT NULL,
+                throw_number INTEGER NOT NULL,
+                player_id INTEGER NOT NULL,
+                team TEXT NOT NULL,
+                weight_call TEXT NOT NULL,
+                turn TEXT NOT NULL,
+                result_score INTEGER NOT NULL,
+                notes TEXT,
+                FOREIGN KEY (game_id) REFERENCES games(id),
+                FOREIGN KEY (player_id) REFERENCES players(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS ends (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            game_id INTEGER NOT NULL,
-            end_number INTEGER NOT NULL,
-            home_score INTEGER NOT NULL DEFAULT 0,
-            away_score INTEGER NOT NULL DEFAULT 0,
-            hammer TEXT NOT NULL,
-            UNIQUE(game_id, end_number),
-            FOREIGN KEY (game_id) REFERENCES games(id)
-        );
+            CREATE TABLE IF NOT EXISTS ends (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                game_id INTEGER NOT NULL,
+                end_number INTEGER NOT NULL,
+                home_score INTEGER NOT NULL DEFAULT 0,
+                away_score INTEGER NOT NULL DEFAULT 0,
+                hammer TEXT NOT NULL,
+                UNIQUE(game_id, end_number),
+                FOREIGN KEY (game_id) REFERENCES games(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS roster (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE,
-            default_position TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-    # Migrate shots table for columns added after initial release
-    for col_sql in [
-        "ALTER TABLE shots ADD COLUMN line TEXT NOT NULL DEFAULT 'Unknown'",
-        "ALTER TABLE shots ADD COLUMN actual_weight TEXT",
-    ]:
-        try:
-            conn.execute(col_sql)
-        except Exception:
-            pass
-    conn.commit()
-    conn.close()
+            CREATE TABLE IF NOT EXISTS roster (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                default_position TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        # Migrate shots table for columns added after initial release
+        for col_sql in [
+            "ALTER TABLE shots ADD COLUMN line TEXT NOT NULL DEFAULT 'Unknown'",
+            "ALTER TABLE shots ADD COLUMN actual_weight TEXT",
+        ]:
+            try:
+                conn.execute(col_sql)
+            except sqlite3.OperationalError:
+                pass
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_game(game_id):
     conn = get_db()
-    game = conn.execute("SELECT * FROM games WHERE id = ?", (game_id,)).fetchone()
-    conn.close()
-    return game
+    try:
+        return conn.execute("SELECT * FROM games WHERE id = ?", (game_id,)).fetchone()
+    finally:
+        conn.close()
 
 
 def get_players(game_id):
     conn = get_db()
-    players = conn.execute(
-        "SELECT * FROM players WHERE game_id = ? ORDER BY team, position",
-        (game_id,)
-    ).fetchall()
-    conn.close()
-    return players
+    try:
+        return conn.execute(
+            "SELECT * FROM players WHERE game_id = ? ORDER BY team, position",
+            (game_id,)
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_players_by_team(game_id):
@@ -141,12 +146,14 @@ def get_players_by_team(game_id):
 
 def has_away_players(game_id):
     conn = get_db()
-    count = conn.execute(
-        "SELECT COUNT(*) FROM players WHERE game_id = ? AND team = 'away'",
-        (game_id,)
-    ).fetchone()[0]
-    conn.close()
-    return count > 0
+    try:
+        count = conn.execute(
+            "SELECT COUNT(*) FROM players WHERE game_id = ? AND team = 'away'",
+            (game_id,)
+        ).fetchone()[0]
+        return count > 0
+    finally:
+        conn.close()
 
 
 def get_effective_throw_order(game_id):
@@ -157,45 +164,51 @@ def get_effective_throw_order(game_id):
 
 def get_shots_for_end(game_id, end_number):
     conn = get_db()
-    shots = conn.execute(
-        "SELECT s.*, p.name, p.position FROM shots s JOIN players p ON s.player_id = p.id "
-        "WHERE s.game_id = ? AND s.end_number = ? ORDER BY s.throw_number",
-        (game_id, end_number)
-    ).fetchall()
-    conn.close()
-    return shots
+    try:
+        return conn.execute(
+            "SELECT s.*, p.name, p.position FROM shots s JOIN players p ON s.player_id = p.id "
+            "WHERE s.game_id = ? AND s.end_number = ? ORDER BY s.throw_number",
+            (game_id, end_number)
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_all_shots(game_id):
     conn = get_db()
-    shots = conn.execute(
-        "SELECT s.*, p.name, p.position FROM shots s JOIN players p ON s.player_id = p.id "
-        "WHERE s.game_id = ? ORDER BY s.end_number, s.throw_number",
-        (game_id,)
-    ).fetchall()
-    conn.close()
-    return shots
+    try:
+        return conn.execute(
+            "SELECT s.*, p.name, p.position FROM shots s JOIN players p ON s.player_id = p.id "
+            "WHERE s.game_id = ? ORDER BY s.end_number, s.throw_number",
+            (game_id,)
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_ends(game_id):
     conn = get_db()
-    ends = conn.execute(
-        "SELECT * FROM ends WHERE game_id = ? ORDER BY end_number",
-        (game_id,)
-    ).fetchall()
-    conn.close()
-    return ends
+    try:
+        return conn.execute(
+            "SELECT * FROM ends WHERE game_id = ? ORDER BY end_number",
+            (game_id,)
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_next_throw(game_id):
     """Return (end_number, throw_number) for the next shot to be entered."""
     max_throws = len(get_effective_throw_order(game_id))
     conn = get_db()
-    row = conn.execute(
-        "SELECT end_number, throw_number FROM shots WHERE game_id = ? ORDER BY end_number DESC, throw_number DESC LIMIT 1",
-        (game_id,)
-    ).fetchone()
-    conn.close()
+    try:
+        row = conn.execute(
+            "SELECT end_number, throw_number FROM shots WHERE game_id = ? "
+            "ORDER BY end_number DESC, throw_number DESC LIMIT 1",
+            (game_id,)
+        ).fetchone()
+    finally:
+        conn.close()
     if row is None:
         return 1, 1
     end, throw = row["end_number"], row["throw_number"]
@@ -206,12 +219,16 @@ def get_next_throw(game_id):
 
 def get_hammer_for_end(game_id, end_number):
     conn = get_db()
-    game = conn.execute("SELECT hammer_first_end FROM games WHERE id = ?", (game_id,)).fetchone()
-    ends = conn.execute(
-        "SELECT * FROM ends WHERE game_id = ? AND end_number < ? ORDER BY end_number",
-        (game_id, end_number)
-    ).fetchall()
-    conn.close()
+    try:
+        game = conn.execute(
+            "SELECT hammer_first_end FROM games WHERE id = ?", (game_id,)
+        ).fetchone()
+        ends = conn.execute(
+            "SELECT * FROM ends WHERE game_id = ? AND end_number < ? ORDER BY end_number",
+            (game_id, end_number)
+        ).fetchall()
+    finally:
+        conn.close()
 
     hammer = game["hammer_first_end"]
     for end in ends:
@@ -220,7 +237,6 @@ def get_hammer_for_end(game_id, end_number):
             hammer = "away"
         elif end["away_score"] > 0:
             hammer = "home"
-        # blank end: hammer stays same
     return hammer
 
 
@@ -228,50 +244,56 @@ def save_shot(game_id, end_number, throw_number, player_id, team,
               weight_call, turn, result_score, line="Unknown",
               actual_weight=None, notes=""):
     conn = get_db()
-    conn.execute(
-        "INSERT INTO shots (game_id, end_number, throw_number, player_id, team, "
-        "weight_call, turn, result_score, line, actual_weight, notes) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        (game_id, end_number, throw_number, player_id, team,
-         weight_call, turn, result_score, line, actual_weight or None, notes)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO shots (game_id, end_number, throw_number, player_id, team, "
+            "weight_call, turn, result_score, line, actual_weight, notes) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (game_id, end_number, throw_number, player_id, team,
+             weight_call, turn, result_score, line, actual_weight or None, notes)
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def delete_game(game_id):
     conn = get_db()
-    conn.execute("DELETE FROM shots WHERE game_id = ?", (game_id,))
-    conn.execute("DELETE FROM ends WHERE game_id = ?", (game_id,))
-    conn.execute("DELETE FROM players WHERE game_id = ?", (game_id,))
-    conn.execute("DELETE FROM games WHERE id = ?", (game_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM shots WHERE game_id = ?", (game_id,))
+        conn.execute("DELETE FROM ends WHERE game_id = ?", (game_id,))
+        conn.execute("DELETE FROM players WHERE game_id = ?", (game_id,))
+        conn.execute("DELETE FROM games WHERE id = ?", (game_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_shots_by_date_range(date_from, date_to):
     conn = get_db()
-    shots = conn.execute(
-        "SELECT s.*, p.name AS player_name, p.position, p.team AS player_team, "
-        "g.date AS game_date, g.home_team, g.away_team, g.venue "
-        "FROM shots s "
-        "JOIN players p ON s.player_id = p.id "
-        "JOIN games g ON s.game_id = g.id "
-        "WHERE g.date >= ? AND g.date <= ? "
-        "ORDER BY g.date, s.game_id, s.end_number, s.throw_number",
-        (date_from, date_to)
-    ).fetchall()
-    conn.close()
-    return shots
+    try:
+        return conn.execute(
+            "SELECT s.*, p.name AS player_name, p.position, p.team AS player_team, "
+            "g.date AS game_date, g.home_team, g.away_team, g.venue "
+            "FROM shots s "
+            "JOIN players p ON s.player_id = p.id "
+            "JOIN games g ON s.game_id = g.id "
+            "WHERE g.date >= ? AND g.date <= ? "
+            "ORDER BY g.date, s.game_id, s.end_number, s.throw_number",
+            (date_from, date_to)
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_roster():
     conn = get_db()
-    players = conn.execute(
-        "SELECT * FROM roster ORDER BY name"
-    ).fetchall()
-    conn.close()
-    return players
+    try:
+        return conn.execute(
+            "SELECT * FROM roster ORDER BY name"
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def add_to_roster(name, default_position=None):
@@ -282,29 +304,33 @@ def add_to_roster(name, default_position=None):
             (name.strip(), default_position or None)
         )
         conn.commit()
-        success = True
-    except Exception:
-        success = False
-    conn.close()
-    return success
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
 
 
 def delete_from_roster(roster_id):
     conn = get_db()
-    conn.execute("DELETE FROM roster WHERE id = ?", (roster_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM roster WHERE id = ?", (roster_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def save_end_score(game_id, end_number, home_score, away_score, hammer):
     conn = get_db()
-    conn.execute(
-        "INSERT OR REPLACE INTO ends (game_id, end_number, home_score, away_score, hammer) "
-        "VALUES (?,?,?,?,?)",
-        (game_id, end_number, home_score, away_score, hammer)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO ends (game_id, end_number, home_score, away_score, hammer) "
+            "VALUES (?,?,?,?,?)",
+            (game_id, end_number, home_score, away_score, hammer)
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def compute_stats(game_id):
@@ -340,11 +366,11 @@ def compute_stats(game_id):
 
     for ps in player_stats.values():
         if ps["shots"] > 0:
-            ps["pct"] = round((ps["total_score"] / (ps["shots"] * 4)) * 100, 1)
+            ps["pct"] = round((ps["total_score"] / (ps["shots"] * MAX_SHOT_SCORE)) * 100, 1)
         else:
             ps["pct"] = 0.0
         for wc, data in ps["by_weight"].items():
-            data["pct"] = round((data["total"] / (data["shots"] * 4)) * 100, 1)
+            data["pct"] = round((data["total"] / (data["shots"] * MAX_SHOT_SCORE)) * 100, 1)
 
     # Scoreline
     home_total, away_total = 0, 0
