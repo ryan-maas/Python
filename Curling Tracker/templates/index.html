@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Games — Curling Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Games</h4>
+  <div class="d-flex gap-2">
+    <a href="/roster" class="btn btn-outline-secondary btn-sm">Roster</a>
+    <a href="/game/new" class="btn btn-success px-4">+ New Game</a>
+  </div>
+</div>
+
+{% if games %}
+<div class="list-group">
+  {% for g in games %}
+  <div class="list-group-item list-group-item-action bg-secondary border-0 mb-2 rounded-3">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <div class="fw-bold fs-5">{{ g.home_team }} vs {{ g.away_team }}</div>
+        <small class="text-light opacity-75">{{ g.date }}{% if g.venue %} &middot; {{ g.venue }}{% endif %}</small>
+        <div class="mt-1">
+          <span class="badge bg-dark">{{ g.ends_played }} end{% if g.ends_played != 1 %}s{% endif %} recorded</span>
+        </div>
+      </div>
+      <div class="d-flex flex-column gap-2 ms-2">
+        <a href="/game/{{ g.id }}/track" class="btn btn-primary btn-sm">Track</a>
+        <a href="/game/{{ g.id }}/stats" class="btn btn-outline-light btn-sm">Stats</a>
+        <form method="post" action="/game/{{ g.id }}/delete"
+              onsubmit="return confirm('Delete this game and all its shots? This cannot be undone.')">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 opacity-50">
+  <div style="font-size:4rem">🥌</div>
+  <p class="mt-2">No games yet. Start tracking!</p>
+</div>
+{% endif %}
+
+<!-- Date Range Export -->
+<div class="card bg-secondary mt-4">
+  <div class="card-body">
+    <h6 class="text-uppercase opacity-50 small mb-3">Export All Shots by Date Range</h6>
+    <form action="/export" method="get">
+      <div class="d-flex gap-2 flex-wrap align-items-end">
+        <div class="flex-fill" style="min-width:130px">
+          <label class="form-label small opacity-75 mb-1">From</label>
+          <input type="date" name="date_from" class="form-control bg-dark text-light border-0"
+                 value="{{ today }}" required>
+        </div>
+        <div class="flex-fill" style="min-width:130px">
+          <label class="form-label small opacity-75 mb-1">To</label>
+          <input type="date" name="date_to" class="form-control bg-dark text-light border-0"
+                 value="{{ today }}" required>
+        </div>
+        <div style="min-width:100px">
+          <label class="form-label small opacity-75 mb-1">Format</label>
+          <select name="format" class="form-select bg-dark text-light border-0">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-outline-light">Export</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

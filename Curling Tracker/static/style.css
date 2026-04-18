@@ -1,0 +1,120 @@
+/* ── Layout ── */
+body { font-size: 16px; }
+.container-fluid { max-width: 600px; }
+
+/* ── Scoreboard ── */
+.score-board { background: #1a1a2e; border: 1px solid #333; }
+.score-num { font-size: 3rem; font-weight: 900; line-height: 1; }
+.end-num { font-size: 2rem; font-weight: 700; }
+.team-name { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; }
+
+/* ── Current Thrower ── */
+.current-thrower { background: #1e1e2e; border: 2px solid; }
+.thrower-name { font-size: 1.6rem; font-weight: 700; }
+.hammer-badge { color: #ffc107; font-size: 0.85rem; font-weight: 600; }
+
+/* ── Section Labels ── */
+.section-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Weight Buttons ── */
+.weight-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.weight-num-btn {
+  min-height: 48px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 6px 2px;
+}
+.weight-btn {
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.btn-check:checked + .weight-num-btn,
+.btn-check:checked + .weight-btn { background: #6c757d !important; border-color: #fff !important; color: #fff !important; }
+
+/* ── Turn Buttons ── */
+.turn-btn {
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.turn-label { font-size: 0.95rem; font-weight: 700; }
+.turn-rotation { font-size: 0.7rem; opacity: 0.7; letter-spacing: 0.02em; }
+.btn-check:checked + .turn-btn { background: #6c757d !important; border-color: #fff !important; color: #fff !important; }
+
+/* ── Line Buttons ── */
+.line-btn { min-height: 48px; font-size: 0.85rem; font-weight: 600; }
+.btn-check:checked + .line-btn-inside       { background: #0dcaf0 !important; border-color: #0dcaf0 !important; color: #000 !important; }
+.btn-check:checked + .line-btn-on-line      { background: #198754 !important; border-color: #198754 !important; color: #fff !important; }
+.btn-check:checked + .line-btn-outside      { background: #fd7e14 !important; border-color: #fd7e14 !important; color: #fff !important; }
+.btn-check:checked + .line-btn-unknown      { background: #6c757d !important; border-color: #6c757d !important; color: #fff !important; }
+
+/* ── Result Buttons ── */
+.result-btn {
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-width: 2px;
+  padding: 6px 4px;
+}
+.result-score-num { font-size: 1.4rem; font-weight: 900; }
+.result-score-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; }
+
+.result-0 { border-color: #dc3545; color: #dc3545; }
+.result-1 { border-color: #fd7e14; color: #fd7e14; }
+.result-2 { border-color: #ffc107; color: #ffc107; }
+.result-3 { border-color: #20c997; color: #20c997; }
+.result-4 { border-color: #0d6efd; color: #0d6efd; }
+
+.btn-check:checked + .result-0 { background: #dc3545 !important; color: #fff !important; }
+.btn-check:checked + .result-1 { background: #fd7e14 !important; color: #fff !important; }
+.btn-check:checked + .result-2 { background: #ffc107 !important; color: #000 !important; }
+.btn-check:checked + .result-3 { background: #20c997 !important; color: #000 !important; }
+.btn-check:checked + .result-4 { background: #0d6efd !important; color: #fff !important; }
+
+/* ── Result Badges (shot list) ── */
+.result-badge { font-size: 0.75rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+.result-badge-0 { background: #dc354533; color: #ff6b6b; }
+.result-badge-1 { background: #fd7e1433; color: #ffa940; }
+.result-badge-2 { background: #ffc10733; color: #ffd666; }
+.result-badge-3 { background: #20c99733; color: #5ce8b8; }
+.result-badge-4 { background: #0d6efd33; color: #6ea8fe; }
+
+/* ── Result Bar (stats) ── */
+.result-bar-4 { background: #0d6efd; }
+.result-bar-3 { background: #20c997; }
+.result-bar-2 { background: #ffc107; }
+.result-bar-1 { background: #fd7e14; }
+.result-bar-0 { background: #dc3545; }
+
+/* ── Shooting Percentage ── */
+.shooting-pct { font-size: 1.5rem; font-weight: 800; }
+
+/* ── Player buttons ── */
+.player-btn { min-height: 52px; font-size: 0.85rem; font-weight: 600; }
+
+/* ── Save button ── */
+.save-btn { min-height: 56px; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; }
+
+/* ── Points buttons ── */
+.pts-btn { min-height: 52px; font-size: 1.2rem; font-weight: 700; }
+.btn-check:checked + .pts-btn { background: #0d6efd !important; border-color: #0d6efd !important; color: #fff !important; }
+
+/* ── Shots list ── */
+.shot-row { font-size: 0.9rem; }

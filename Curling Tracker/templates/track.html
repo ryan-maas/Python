@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}End {{ end_num }} — {{ game.home_team }} vs {{ game.away_team }}{% endblock %}
+
+{% block nav_extra %}
+<div class="d-flex gap-2 ms-auto">
+  <a href="/game/{{ game.id }}/end/{{ end_num }}/score/manual" class="btn btn-outline-warning btn-sm">Score End</a>
+  <a href="/game/{{ game.id }}/stats" class="btn btn-outline-light btn-sm">Stats</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Scoreboard -->
+<div class="score-board d-flex justify-content-between align-items-center mb-3 p-3 rounded-3">
+  <div class="text-center">
+    <div class="team-name text-warning">{{ game.home_team }}</div>
+    <div class="score-num text-warning">{{ home_score }}</div>
+    <div class="small opacity-50">HOME</div>
+  </div>
+  <div class="text-center">
+    <div class="small opacity-50">END</div>
+    <div class="end-num">{{ end_num }}</div>
+    <div class="small opacity-50">THROW {{ throw_num }}/{{ max_throws }}</div>
+  </div>
+  <div class="text-center">
+    <div class="team-name text-info">{{ game.away_team }}</div>
+    <div class="score-num text-info">{{ away_score }}</div>
+    <div class="small opacity-50">AWAY</div>
+  </div>
+</div>
+
+<!-- Current Thrower -->
+<div class="current-thrower mb-3 p-3 rounded-3 {% if current_team == 'home' %}border-warning{% else %}border-info{% endif %}">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <span class="badge {% if current_team == 'home' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} mb-1">
+        {{ game.home_team if current_team == 'home' else game.away_team }} &middot; {{ current_position|title }}
+      </span>
+      <div class="thrower-name">
+        {% if current_player %}{{ current_player.name }}{% else %}{{ current_position|title }}{% endif %}
+      </div>
+    </div>
+    <div class="text-end">
+      {% if hammer == current_team %}
+      <span class="hammer-badge">🔨 HAMMER</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Shot Entry Form -->
+<form method="post" action="/game/{{ game.id }}/shot" id="shot-form">
+  <input type="hidden" name="end_number" value="{{ end_num }}">
+  <input type="hidden" name="throw_number" value="{{ throw_num }}">
+  <input type="hidden" name="team" value="{{ current_team }}">
+  <input type="hidden" name="player_id" id="player_id_input"
+         value="{{ current_player.id if current_player else '' }}">
+
+  <!-- Player Override -->
+  <div class="mb-3">
+    <label class="section-label">THROWER</label>
+    <div class="d-flex flex-wrap gap-2">
+      {% for p in all_players %}
+      <input type="radio" class="btn-check" name="player_override" id="p_{{ p.id }}"
+             value="{{ p.id }}" {% if current_player and p.id == current_player.id %}checked{% endif %}
+             onchange="document.getElementById('player_id_input').value=this.value">
+      <label class="btn {% if p.team == 'home' %}btn-outline-warning{% else %}btn-outline-info{% endif %} btn-sm player-btn"
+             for="p_{{ p.id }}">
+        <span class="d-block small opacity-75">{{ p.team|upper }}</span>
+        {{ p.name if p.name else p.position|title }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Weight Call -->
+  <div class="mb-3">
+    <label class="section-label">WEIGHT CALL</label>
+    <div class="weight-grid mb-2">
+      {% for wc in weight_calls[:10] %}
+      <input type="radio" class="btn-check" name="weight_call" id="wc_{{ loop.index }}"
+             value="{{ wc }}" {% if loop.first %}checked{% endif %} required>
+      <label class="btn btn-outline-light weight-num-btn" for="wc_{{ loop.index }}">{{ wc }}</label>
+      {% endfor %}
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      {% for wc in weight_calls[10:] %}
+      <input type="radio" class="btn-check" name="weight_call" id="wc_{{ loop.index + 10 }}"
+             value="{{ wc }}" required>
+      <label class="btn btn-outline-light weight-btn" for="wc_{{ loop.index + 10 }}">{{ wc }}</label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Actual Weight Thrown -->
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <label class="section-label mb-0">ACTUAL WEIGHT</label>
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+              id="actual-weight-toggle" onclick="toggleActualWeight()">
+        Different from call
+      </button>
+    </div>
+    <div id="actual-weight-grid" style="display:none">
+      <div class="weight-grid mb-2">
+        {% for wc in weight_calls[:10] %}
+        <input type="radio" class="btn-check" name="actual_weight" id="aw_{{ loop.index }}"
+               value="{{ wc }}">
+        <label class="btn btn-outline-secondary weight-num-btn" for="aw_{{ loop.index }}">{{ wc }}</label>
+        {% endfor %}
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for wc in weight_calls[10:] %}
+        <input type="radio" class="btn-check" name="actual_weight" id="aw_{{ loop.index + 10 }}"
+               value="{{ wc }}">
+        <label class="btn btn-outline-secondary weight-btn" for="aw_{{ loop.index + 10 }}">{{ wc }}</label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Turn -->
+  <div class="mb-3">
+    <label class="section-label">TURN</label>
+    <div class="d-flex gap-2">
+      {% for value, label, rotation in turns %}
+      <input type="radio" class="btn-check" name="turn" id="t_{{ loop.index }}"
+             value="{{ value }}" {% if loop.first %}checked{% endif %} required>
+      <label class="btn btn-outline-light flex-fill turn-btn" for="t_{{ loop.index }}">
+        <div class="turn-label">{{ label }}</div>
+        <div class="turn-rotation">{{ rotation }}</div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Line -->
+  <div class="mb-3">
+    <label class="section-label">LINE</label>
+    <div class="d-flex gap-2">
+      {% for ln in lines %}
+      <input type="radio" class="btn-check" name="line" id="ln_{{ loop.index }}"
+             value="{{ ln }}" {% if ln == 'Unknown' %}checked{% endif %} required>
+      <label class="btn btn-outline-light flex-fill line-btn line-btn-{{ ln|lower|replace(' ', '-') }}"
+             for="ln_{{ loop.index }}">{{ ln }}</label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="mb-4">
+    <label class="section-label">RESULT</label>
+    <div class="d-flex gap-2">
+      {% for score, label in result_labels.items() %}
+      <input type="radio" class="btn-check" name="result_score" id="r_{{ score }}"
+             value="{{ score }}" {% if score == 4 %}checked{% endif %} required>
+      <label class="btn result-btn result-{{ score }} flex-fill" for="r_{{ score }}">
+        <div class="result-score-num">{{ score }}</div>
+        <div class="result-score-label">{{ label }}</div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="mb-3">
+    <input type="text" name="notes" class="form-control bg-dark text-light border-secondary"
+           placeholder="Notes (optional)">
+  </div>
+
+  <button type="submit" class="btn btn-success btn-lg w-100 save-btn">Save Shot &rarr;</button>
+</form>
+
+<!-- Shots This End -->
+{% if shots_this_end %}
+<div class="mt-4">
+  <h6 class="text-uppercase opacity-50 small mb-2">Shots This End</h6>
+  <div class="shots-list">
+    {% for s in shots_this_end %}
+    <div class="shot-row d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+      <div>
+        <span class="badge {% if s.team == 'home' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} me-1">
+          #{{ s.throw_number }}
+        </span>
+        <span class="fw-semibold">{{ s.name }}</span>
+        <span class="text-muted small ms-1">
+          {{ s.weight_call }}{% if s.actual_weight %} → {{ s.actual_weight }}{% endif %}
+          &middot; {{ s.turn }} &middot; {{ s.line }}
+        </span>
+      </div>
+      <div>
+        <span class="result-badge result-badge-{{ s.result_score }}">
+          {{ result_labels[s.result_score] }} ({{ s.result_score }})
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleActualWeight() {
+  const grid = document.getElementById('actual-weight-grid');
+  const btn = document.getElementById('actual-weight-toggle');
+  const showing = grid.style.display !== 'none';
+  if (showing) {
+    grid.style.display = 'none';
+    btn.textContent = 'Different from call';
+    btn.classList.remove('btn-warning');
+    btn.classList.add('btn-outline-secondary');
+    document.querySelectorAll('input[name="actual_weight"]').forEach(r => r.checked = false);
+  } else {
+    grid.style.display = 'block';
+    btn.textContent = '✓ Recording actual weight';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-warning');
+  }
+}
+</script>
+{% endblock %}

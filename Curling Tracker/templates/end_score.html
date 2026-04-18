@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}End {{ end_num }} Score{% endblock %}
+
+{% block content %}
+<h4 class="mb-1">End {{ end_num }} Complete</h4>
+<p class="text-muted small mb-3">
+  {{ game.home_team }} {{ home_cum }} — {{ game.away_team }} {{ away_cum }}
+</p>
+
+<!-- Shots Summary -->
+{% if shots %}
+<div class="card bg-secondary mb-3">
+  <div class="card-body p-2">
+    <h6 class="text-uppercase opacity-50 small mb-2">Shot Summary</h6>
+    {% for s in shots %}
+    <div class="d-flex justify-content-between py-1 border-bottom border-dark small">
+      <span>
+        <span class="badge {% if s.team == 'home' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} me-1">
+          #{{ s.throw_number }}
+        </span>
+        {{ s.name }} — {{ s.weight_call }}
+      </span>
+      <span class="result-badge result-badge-{{ s.result_score }}">{{ result_labels[s.result_score] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Score Entry -->
+<div class="card bg-secondary mb-3">
+  <div class="card-body">
+    <p class="mb-2 small opacity-75">
+      Hammer: <strong>{{ game.home_team if hammer == 'home' else game.away_team }}</strong>
+    </p>
+    <form method="post">
+      <div class="mb-3">
+        <label class="section-label">WHO SCORED?</label>
+        <div class="d-flex gap-2 mb-3">
+          <input type="radio" class="btn-check" name="scorer" id="sc_home" value="home" checked
+                 onchange="setScoringTeam('home')">
+          <label class="btn btn-outline-warning flex-fill fs-5" for="sc_home">{{ game.home_team }}</label>
+          <input type="radio" class="btn-check" name="scorer" id="sc_away" value="away"
+                 onchange="setScoringTeam('away')">
+          <label class="btn btn-outline-info flex-fill fs-5" for="sc_away">{{ game.away_team }}</label>
+          <input type="radio" class="btn-check" name="scorer" id="sc_blank" value="blank"
+                 onchange="setScoringTeam('blank')">
+          <label class="btn btn-outline-secondary flex-fill fs-5" for="sc_blank">Blank</label>
+        </div>
+
+        <label class="section-label">POINTS SCORED</label>
+        <div class="d-flex gap-2 flex-wrap" id="points-btns">
+          {% for pts in range(1, 9) %}
+          <input type="radio" class="btn-check" name="points" id="pts_{{ pts }}"
+                 value="{{ pts }}" {% if pts == 1 %}checked{% endif %}>
+          <label class="btn btn-outline-light pts-btn flex-fill" for="pts_{{ pts }}">{{ pts }}</label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <input type="hidden" name="home_score" id="home_score_input" value="1">
+      <input type="hidden" name="away_score" id="away_score_input" value="0">
+
+      <button type="submit" class="btn btn-success btn-lg w-100 mt-2">Save & Continue &rarr;</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentScorer = 'home';
+document.querySelectorAll('input[name="points"]').forEach(radio => {
+  radio.addEventListener('change', updateScores);
+});
+function setScoringTeam(team) {
+  currentScorer = team;
+  document.getElementById('points-btns').style.opacity = team === 'blank' ? '0.3' : '1';
+  updateScores();
+}
+function updateScores() {
+  const pts = parseInt(document.querySelector('input[name="points"]:checked')?.value || 0);
+  if (currentScorer === 'home') {
+    document.getElementById('home_score_input').value = pts;
+    document.getElementById('away_score_input').value = 0;
+  } else if (currentScorer === 'away') {
+    document.getElementById('home_score_input').value = 0;
+    document.getElementById('away_score_input').value = pts;
+  } else {
+    document.getElementById('home_score_input').value = 0;
+    document.getElementById('away_score_input').value = 0;
+  }
+}
+updateScores();
+</script>
+{% endblock %}
