@@ -123,12 +123,13 @@
   <div class="mb-3">
     <label class="section-label">TURN</label>
     <div class="d-flex gap-2">
-      {% for value, label, rotation in turns %}
+      {% for value, label, rotation, arm in turns %}
       <input type="radio" class="btn-check" name="turn" id="t_{{ loop.index }}"
              value="{{ value }}" {% if loop.first %}checked{% endif %} required>
       <label class="btn btn-outline-light flex-fill turn-btn" for="t_{{ loop.index }}">
         <div class="turn-label">{{ label }}</div>
         <div class="turn-rotation">{{ rotation }}</div>
+        <div class="turn-rotation">{{ arm }}</div>
       </label>
       {% endfor %}
     </div>

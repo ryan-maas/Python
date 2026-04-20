@@ -29,10 +29,10 @@ POSITIONS = ["lead", "second", "vice", "skip"]
 WEIGHT_CALLS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                 "Hack", "Board", "Control", "Normal", "Peel"]
 
-# (stored value, display label, rotation note)
+# (stored value, display label, rotation note, arm descriptor)
 TURNS = [
-    ("In-turn",  "In-turn",  "↻ Clockwise"),
-    ("Out-turn", "Out-turn", "↺ Counter-clockwise"),
+    ("In-turn",  "In-turn",  "↻ Clockwise",         "Skip Right Arm"),
+    ("Out-turn", "Out-turn", "↺ Counter-clockwise",  "Skip Left Arm"),
 ]
 
 LINES = ["Inside", "On Line", "Outside", "Unknown"]
@@ -130,7 +130,9 @@ def get_players(game_id):
     conn = get_db()
     try:
         return conn.execute(
-            "SELECT * FROM players WHERE game_id = ? ORDER BY team, position",
+            "SELECT * FROM players WHERE game_id = ? "
+            "ORDER BY team, CASE position "
+            "WHEN 'lead' THEN 0 WHEN 'second' THEN 1 WHEN 'vice' THEN 2 WHEN 'skip' THEN 3 END",
             (game_id,)
         ).fetchall()
     finally:

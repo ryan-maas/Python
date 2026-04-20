@@ -52,14 +52,15 @@
 
 <!-- Player Stats -->
 {% for team in ['home', 'away'] %}
-{% set team_players = player_stats.values() | selectattr('team', 'equalto', team) | list | sort(attribute='position') %}
+{% set team_players = player_stats.values() | selectattr('team', 'equalto', team) | list %}
 {% if team_players %}
 <div class="card mb-3 {% if team == 'home' %}border-warning{% else %}border-info{% endif %} bg-secondary">
   <div class="card-body">
     <h6 class="text-uppercase mb-3 {% if team == 'home' %}text-warning{% else %}text-info{% endif %}">
       {{ team|title }} Team
     </h6>
-    {% for ps in team_players %}
+    {% for pos in positions %}
+    {% for ps in team_players | selectattr('position', 'equalto', pos) | list %}
     {% if ps.shots > 0 %}
     <div class="mb-3 pb-3 border-bottom border-dark">
       <div class="d-flex justify-content-between align-items-start mb-1">
@@ -110,6 +111,7 @@
       {% endif %}
     </div>
     {% endif %}
+    {% endfor %}
     {% endfor %}
   </div>
 </div>

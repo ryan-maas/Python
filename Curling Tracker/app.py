@@ -165,7 +165,7 @@ def manual_end_score(game_id, end_num):
 def game_stats(game_id):
     game = db.get_game(game_id)
     stats = db.compute_stats(game_id)
-    return render_template("stats.html", game=game, **stats)
+    return render_template("stats.html", game=game, positions=db.POSITIONS, **stats)
 
 
 @app.route("/game/<int:game_id>/delete", methods=["POST"])
