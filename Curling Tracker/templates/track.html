@@ -168,7 +168,7 @@
            placeholder="Notes (optional)">
   </div>
 
-  <button type="submit" class="btn btn-success btn-lg w-100 save-btn" onclick="this.disabled=true;this.form.submit()">Save Shot &rarr;</button>
+  <button type="submit" class="btn btn-success btn-lg w-100 save-btn">Save Shot &rarr;</button>
 </form>
 
 <!-- Shots This End -->
@@ -219,5 +219,8 @@ function toggleActualWeight() {
     btn.classList.add('btn-warning');
   }
 }
+document.getElementById('shot-form').addEventListener('submit', function () {
+  this.querySelector('.save-btn').disabled = true;
+});
 </script>
 {% endblock %}

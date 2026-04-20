@@ -68,7 +68,7 @@
           <span class="badge bg-dark ms-1">{{ ps.position|title }}</span>
         </div>
         <div class="text-end">
-          <div class="shooting-pct {% if ps.pct >= 75 %}text-success{% elif ps.pct >= 50 %}text-warning{% else %}text-danger{% endif %}">
+          <div class="shooting-pct {% if ps.pct >= 75 %}pct-high{% elif ps.pct >= 50 %}pct-mid{% else %}pct-low{% endif %}">
             {{ ps.pct }}%
           </div>
           <div class="small opacity-50">{{ ps.shots }} shots</div>
@@ -100,7 +100,7 @@
         <div class="d-flex justify-content-between small py-1 border-bottom border-dark">
           <span class="opacity-75">{{ wc }}</span>
           <span>{{ data.shots }} shots &mdash;
-            <strong class="{% if data.pct >= 75 %}text-success{% elif data.pct >= 50 %}text-warning{% else %}text-danger{% endif %}">
+            <strong class="{% if data.pct >= 75 %}pct-high{% elif data.pct >= 50 %}pct-mid{% else %}pct-low{% endif %}">
               {{ data.pct }}%
             </strong>
           </span>

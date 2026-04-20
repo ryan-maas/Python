@@ -61,7 +61,7 @@
       <input type="hidden" name="home_score" id="home_score_input" value="1">
       <input type="hidden" name="away_score" id="away_score_input" value="0">
 
-      <button type="submit" class="btn btn-success btn-lg w-100 mt-2" onclick="this.disabled=true;this.form.submit()">Save & Continue &rarr;</button>
+      <button type="submit" class="btn btn-success btn-lg w-100 mt-2 save-btn">Save & Continue &rarr;</button>
     </form>
   </div>
 </div>
@@ -92,5 +92,8 @@ function updateScores() {
   }
 }
 updateScores();
+document.querySelector('form').addEventListener('submit', function () {
+  this.querySelector('.save-btn').disabled = true;
+});
 </script>
 {% endblock %}
