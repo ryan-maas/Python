@@ -36,6 +36,16 @@ TURNS = [
 ]
 
 LINES = ["Inside", "On Line", "Outside", "Unknown"]
+
+_GUARD_WEIGHTS   = {"1", "2", "3"}
+_DRAW_WEIGHTS    = {"4", "5", "6", "7", "8", "9", "10"}
+
+def weight_group(weight_call):
+    if weight_call in _GUARD_WEIGHTS:
+        return "Guard"
+    if weight_call in _DRAW_WEIGHTS:
+        return "Draw"
+    return "Takeout"
 RESULT_LABELS = {0: "Miss", 1: "Poor", 2: "Fair", 3: "Good", 4: "Perfect"}
 MAX_SHOT_SCORE = 4  # Max points per shot (4 = Perfect)
 
@@ -349,7 +359,11 @@ def compute_stats(game_id):
             "position": p["position"],
             "shots": 0,
             "total_score": 0,
-            "by_weight": {},
+            "by_weight": {
+                "Guard":   {"shots": 0, "total": 0},
+                "Draw":    {"shots": 0, "total": 0},
+                "Takeout": {"shots": 0, "total": 0},
+            },
             "by_result": {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
         }
 
@@ -360,8 +374,7 @@ def compute_stats(game_id):
         ps = player_stats[pid]
         ps["shots"] += 1
         ps["total_score"] += shot["result_score"]
-        wc = shot["weight_call"]
-        ps["by_weight"].setdefault(wc, {"shots": 0, "total": 0})
+        wc = weight_group(shot["weight_call"])
         ps["by_weight"][wc]["shots"] += 1
         ps["by_weight"][wc]["total"] += shot["result_score"]
         ps["by_result"][shot["result_score"]] += 1
@@ -372,7 +385,10 @@ def compute_stats(game_id):
         else:
             ps["pct"] = 0.0
         for wc, data in ps["by_weight"].items():
-            data["pct"] = round((data["total"] / (data["shots"] * MAX_SHOT_SCORE)) * 100, 1)
+            if data["shots"] > 0:
+                data["pct"] = round((data["total"] / (data["shots"] * MAX_SHOT_SCORE)) * 100, 1)
+            else:
+                data["pct"] = None
 
     # Scoreline
     home_total, away_total = 0, 0

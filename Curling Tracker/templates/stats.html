@@ -98,6 +98,7 @@
       {% if ps.by_weight %}
       <div class="mt-2">
         {% for wc, data in ps.by_weight.items() %}
+        {% if data.shots > 0 %}
         <div class="d-flex justify-content-between small py-1 border-bottom border-dark">
           <span class="opacity-75">{{ wc }}</span>
           <span>{{ data.shots }} shots &mdash;
@@ -106,6 +107,7 @@
             </strong>
           </span>
         </div>
+        {% endif %}
         {% endfor %}
       </div>
       {% endif %}
