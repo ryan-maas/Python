@@ -31,8 +31,8 @@ WEIGHT_CALLS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 
 # (stored value, display label, rotation note, arm descriptor)
 TURNS = [
-    ("In-turn",  "In-turn",  "↻ Clockwise",         "Skip Right Arm"),
     ("Out-turn", "Out-turn", "↺ Counter-clockwise",  "Skip Left Arm"),
+    ("In-turn",  "In-turn",  "↻ Clockwise",          "Skip Right Arm"),
 ]
 
 LINES = ["Inside", "On Line", "Outside", "Unknown"]
