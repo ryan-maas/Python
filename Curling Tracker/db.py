@@ -242,6 +242,8 @@ def get_hammer_for_end(game_id, end_number):
     finally:
         conn.close()
 
+    if not game:
+        return "home"
     hammer = game["hammer_first_end"]
     for end in ends:
         # Team that scores gives up hammer; blank end keeps hammer

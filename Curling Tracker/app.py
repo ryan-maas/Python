@@ -7,16 +7,25 @@ import db
 app = Flask(__name__)
 db.init_db()
 
+_VALID_TURNS = {t[0] for t in db.TURNS}
+
+
+def _bad_request(game_id):
+    """Redirect to track on invalid POST data rather than crashing."""
+    return redirect(url_for("track", game_id=game_id))
+
 
 @app.route("/")
 def index():
     conn = db.get_db()
-    games = conn.execute(
-        "SELECT g.*, "
-        "(SELECT COUNT(*) FROM ends WHERE game_id = g.id) as ends_played "
-        "FROM games g ORDER BY g.created_at DESC"
-    ).fetchall()
-    conn.close()
+    try:
+        games = conn.execute(
+            "SELECT g.*, "
+            "(SELECT COUNT(*) FROM ends WHERE game_id = g.id) as ends_played "
+            "FROM games g ORDER BY g.created_at DESC"
+        ).fetchall()
+    finally:
+        conn.close()
     return render_template("index.html", games=games, today=date.today().isoformat())
 
 
@@ -25,24 +34,25 @@ def new_game():
     if request.method == "POST":
         f = request.form
         conn = db.get_db()
-        cur = conn.execute(
-            "INSERT INTO games (date, home_team, away_team, venue, hammer_first_end, notes) "
-            "VALUES (?,?,?,?,?,?)",
-            (f["date"], f["home_team"], f["away_team"],
-             f.get("venue", ""), f["hammer_first_end"], f.get("notes", ""))
-        )
-        game_id = cur.lastrowid
-
-        for team in ["home", "away"]:
-            for pos in db.POSITIONS:
-                name = f.get(f"{team}_{pos}", "").strip()
-                if name:
-                    conn.execute(
-                        "INSERT INTO players (game_id, name, team, position) VALUES (?,?,?,?)",
-                        (game_id, name, team, pos)
-                    )
-        conn.commit()
-        conn.close()
+        try:
+            cur = conn.execute(
+                "INSERT INTO games (date, home_team, away_team, venue, hammer_first_end, notes) "
+                "VALUES (?,?,?,?,?,?)",
+                (f["date"], f["home_team"], f["away_team"],
+                 f.get("venue", ""), f["hammer_first_end"], f.get("notes", ""))
+            )
+            game_id = cur.lastrowid
+            for team in ["home", "away"]:
+                for pos in db.POSITIONS:
+                    name = f.get(f"{team}_{pos}", "").strip()
+                    if name:
+                        conn.execute(
+                            "INSERT INTO players (game_id, name, team, position) VALUES (?,?,?,?)",
+                            (game_id, name, team, pos)
+                        )
+            conn.commit()
+        finally:
+            conn.close()
         return redirect(url_for("track", game_id=game_id))
 
     return render_template("setup.html", today=date.today().isoformat(),
@@ -52,6 +62,9 @@ def new_game():
 @app.route("/game/<int:game_id>/track")
 def track(game_id):
     game = db.get_game(game_id)
+    if not game:
+        return redirect(url_for("index"))
+
     home_players, away_players = db.get_players_by_team(game_id)
     throw_order = db.get_effective_throw_order(game_id)
     max_throws = len(throw_order)
@@ -102,30 +115,63 @@ def track(game_id):
 @app.route("/game/<int:game_id>/shot", methods=["POST"])
 def save_shot(game_id):
     f = request.form
+
+    # Parse and validate integer fields
+    try:
+        end_number   = int(f["end_number"])
+        throw_number = int(f["throw_number"])
+        player_id    = int(f["player_id"])
+        result_score = int(f["result_score"])
+    except (ValueError, KeyError):
+        return _bad_request(game_id)
+
+    if end_number < 1 or throw_number < 1:
+        return _bad_request(game_id)
+    if not (0 <= result_score <= db.MAX_SHOT_SCORE):
+        return _bad_request(game_id)
+
+    # Validate enum fields
+    weight_call = f.get("weight_call", "")
+    if weight_call not in db.WEIGHT_CALLS:
+        return _bad_request(game_id)
+
+    turn = f.get("turn", "")
+    if turn not in _VALID_TURNS:
+        return _bad_request(game_id)
+
+    line = f.get("line", "Unknown")
+    if line not in db.LINES:
+        line = "Unknown"
+
+    actual_weight = f.get("actual_weight") or None
+    if actual_weight and actual_weight not in db.WEIGHT_CALLS:
+        actual_weight = None
+
     db.save_shot(
         game_id=game_id,
-        end_number=int(f["end_number"]),
-        throw_number=int(f["throw_number"]),
-        player_id=int(f["player_id"]),
-        team=f["team"],
-        weight_call=f["weight_call"],
-        turn=f["turn"],
-        result_score=int(f["result_score"]),
-        line=f.get("line", "Unknown"),
-        actual_weight=f.get("actual_weight") or None,
+        end_number=end_number,
+        throw_number=throw_number,
+        player_id=player_id,
+        team=f.get("team", "home"),
+        weight_call=weight_call,
+        turn=turn,
+        result_score=result_score,
+        line=line,
+        actual_weight=actual_weight,
         notes=f.get("notes", ""),
     )
     max_throws = len(db.get_effective_throw_order(game_id))
-    prev_throw = int(f["throw_number"])
-    prev_end = int(f["end_number"])
-    if prev_throw >= max_throws:
-        return redirect(url_for("end_score", game_id=game_id, end_num=prev_end))
+    if throw_number >= max_throws:
+        return redirect(url_for("end_score", game_id=game_id, end_num=end_number))
     return redirect(url_for("track", game_id=game_id))
 
 
 @app.route("/game/<int:game_id>/end/<int:end_num>/score", methods=["GET", "POST"])
 def end_score(game_id, end_num):
     game = db.get_game(game_id)
+    if not game:
+        return redirect(url_for("index"))
+
     hammer = db.get_hammer_for_end(game_id, end_num)
     shots = db.get_shots_for_end(game_id, end_num)
     ends = db.get_ends(game_id)
@@ -134,11 +180,18 @@ def end_score(game_id, end_num):
 
     if request.method == "POST":
         f = request.form
+        try:
+            home_score = int(f["home_score"])
+            away_score = int(f["away_score"])
+        except (ValueError, KeyError):
+            return redirect(url_for("end_score", game_id=game_id, end_num=end_num))
+        home_score = max(0, min(8, home_score))
+        away_score = max(0, min(8, away_score))
         db.save_end_score(
             game_id=game_id,
             end_number=end_num,
-            home_score=int(f["home_score"]),
-            away_score=int(f["away_score"]),
+            home_score=home_score,
+            away_score=away_score,
             hammer=hammer,
         )
         return redirect(url_for("track", game_id=game_id))
@@ -164,6 +217,8 @@ def manual_end_score(game_id, end_num):
 @app.route("/game/<int:game_id>/stats")
 def game_stats(game_id):
     game = db.get_game(game_id)
+    if not game:
+        return redirect(url_for("index"))
     stats = db.compute_stats(game_id)
     return render_template("stats.html", game=game, positions=db.POSITIONS, **stats)
 
@@ -222,8 +277,9 @@ def shots_json(game_id):
 @app.route("/game/<int:game_id>/shots.csv")
 def shots_csv(game_id):
     game = db.get_game(game_id)
+    if not game:
+        return redirect(url_for("index"))
     shots = db.get_all_shots(game_id)
-    # Attach game fields so _shots_csv can find them
     enriched = []
     for s in shots:
         sd = dict(s)
@@ -244,7 +300,7 @@ def export_range():
     date_from = request.args.get("date_from", "")
     date_to = request.args.get("date_to", "")
     fmt = request.args.get("format", "csv")
-    if not date_from or not date_to:
+    if not date_from or not date_to or date_from > date_to:
         return redirect(url_for("index"))
     shots = db.get_shots_by_date_range(date_from, date_to)
     filename = f"curling_shots_{date_from}_to_{date_to}"
