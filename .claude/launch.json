@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "portfolio-analyzer",
+      "runtimeExecutable": "/Users/maas/Documents/GitHub/Python/.venv/bin/streamlit",
+      "runtimeArgs": ["run", "/Users/maas/Documents/GitHub/Python/Portfolio Analyzer/app.py", "--server.headless", "true"],
+      "port": 8501
+    }
+  ]
+}

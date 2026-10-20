@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Player Roster — Curling Tracker{% endblock %}
+
+{% block nav_extra %}
+<a href="/" class="btn btn-outline-light btn-sm ms-auto">← Games</a>
+{% endblock %}
+
+{% block content %}
+<h4 class="mb-1">Player Roster</h4>
+<p class="text-muted small mb-3">Players saved here appear as autocomplete suggestions when setting up a game.</p>
+
+<!-- Add Player -->
+<div class="card bg-secondary mb-4">
+  <div class="card-body">
+    <h6 class="text-uppercase opacity-50 small mb-3">Add Player</h6>
+    <form method="post" action="/roster/add" class="d-flex gap-2 flex-wrap">
+      <input type="text" name="name" class="form-control bg-dark text-light border-0 flex-fill"
+             placeholder="Player name" required style="min-width:160px">
+      <select name="default_position" class="form-select bg-dark text-light border-0" style="max-width:140px">
+        <option value="">Position (opt.)</option>
+        {% for pos in positions %}
+        <option value="{{ pos }}">{{ pos|title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-success">Add</button>
+    </form>
+  </div>
+</div>
+
+<!-- Player List -->
+{% if roster %}
+<div class="list-group">
+  {% for p in roster %}
+  <div class="list-group-item bg-secondary border-0 mb-1 rounded-2 d-flex justify-content-between align-items-center">
+    <div>
+      <span class="fw-semibold">{{ p.name }}</span>
+      {% if p.default_position %}
+      <span class="badge bg-dark ms-2">{{ p.default_position|title }}</span>
+      {% endif %}
+    </div>
+    <form method="post" action="/roster/{{ p.id }}/delete"
+          onsubmit="return confirm('Remove {{ p.name }} from roster?')">
+      <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 opacity-50">
+  <p>No players in roster yet. Add players above to use them as autocomplete suggestions during game setup.</p>
+</div>
+{% endif %}
+{% endblock %}

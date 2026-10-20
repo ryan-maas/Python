@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(python -c \"import db; db.init_db\\(\\); print\\('DB OK'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'Curling Tracker'\\); import db; import app; print\\('OK'\\)\")",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, 'Curling Tracker'\\); import db; print\\(db.weight_group\\('2'\\), db.weight_group\\('7'\\), db.weight_group\\('Hack'\\)\\); import app; print\\('OK'\\)\")"
+    ]
+  }
+}

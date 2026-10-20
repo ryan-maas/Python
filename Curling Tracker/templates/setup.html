@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}New Game — Curling Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">New Game</h4>
+  <a href="/roster" class="btn btn-outline-secondary btn-sm">Manage Roster</a>
+</div>
+
+<!-- Roster datalist for autocomplete on all player inputs -->
+<datalist id="roster-list">
+  {% for p in roster %}
+  <option value="{{ p.name }}">{% if p.default_position %} ({{ p.default_position|title }}){% endif %}</option>
+  {% endfor %}
+</datalist>
+
+<form method="post" action="/game/new">
+
+  <div class="card bg-secondary mb-3">
+    <div class="card-body">
+      <h6 class="card-title text-uppercase text-light opacity-75 mb-3">Game Info</h6>
+      <div class="mb-3">
+        <label class="form-label">Date</label>
+        <input type="date" name="date" class="form-control form-control-lg bg-dark text-light border-0"
+               value="{{ today }}" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Venue</label>
+        <input type="text" name="venue" class="form-control bg-dark text-light border-0"
+               placeholder="Arena / Club name">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Hammer — First End</label>
+        <div class="d-flex gap-2">
+          <input type="radio" class="btn-check" name="hammer_first_end" id="hammer_home" value="home" checked>
+          <label class="btn btn-outline-warning flex-fill" for="hammer_home">Home</label>
+          <input type="radio" class="btn-check" name="hammer_first_end" id="hammer_away" value="away">
+          <label class="btn btn-outline-info flex-fill" for="hammer_away">Away</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Home team — always tracked -->
+  <div class="card mb-3 border-warning bg-secondary">
+    <div class="card-body">
+      <h6 class="card-title text-uppercase text-warning opacity-75 mb-3">Your Team (Home)</h6>
+      <div class="mb-3">
+        <input type="text" name="home_team"
+               class="form-control form-control-lg bg-dark text-light border-0"
+               placeholder="Home team name" required>
+      </div>
+      {% for pos in positions %}
+      <div class="mb-2">
+        <label class="form-label text-capitalize opacity-75 small">{{ pos }}</label>
+        <input type="text" name="home_{{ pos }}" list="roster-list"
+               class="form-control bg-dark text-light border-0"
+               placeholder="{{ pos|title }} name">
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Away team — name required, lineup optional -->
+  <div class="card mb-3 border-info bg-secondary">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <h6 class="card-title text-uppercase text-info opacity-75 mb-0">Opponent (Away)</h6>
+        <span class="badge bg-dark text-secondary">Lineup optional</span>
+      </div>
+      <div class="mb-3">
+        <input type="text" name="away_team"
+               class="form-control form-control-lg bg-dark text-light border-0"
+               placeholder="Away team name" required>
+      </div>
+      <p class="small text-secondary mb-2">
+        Enter their lineup to track opponent shots. Leave blank to track your team only.
+      </p>
+      <div id="away-players" class="collapse">
+        {% for pos in positions %}
+        <div class="mb-2">
+          <label class="form-label text-capitalize opacity-75 small">{{ pos }}</label>
+          <input type="text" name="away_{{ pos }}" list="roster-list"
+                 class="form-control bg-dark text-light border-0"
+                 placeholder="{{ pos|title }} name">
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-outline-info btn-sm w-100 mt-1"
+              onclick="toggleAway(this)">+ Add Opponent Lineup</button>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Notes</label>
+    <textarea name="notes" class="form-control bg-dark text-light border-0" rows="2"
+              placeholder="Optional notes"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-success btn-lg w-100">Start Tracking</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleAway(btn) {
+  const el = document.getElementById('away-players');
+  const open = el.classList.toggle('show');
+  btn.textContent = open ? '− Hide Opponent Lineup' : '+ Add Opponent Lineup';
+}
+</script>
+{% endblock %}
