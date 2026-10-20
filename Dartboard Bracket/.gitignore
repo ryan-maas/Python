@@ -1,2 +1,4 @@
 *.csv
+!CBB Rankings - 2026.csv
 *.xlsx
+*.txt
